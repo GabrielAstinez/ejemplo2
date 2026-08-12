@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>🌟 Actrices</title>
+    <title>🗂️ Categorías</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -16,21 +16,21 @@
         <button onclick="window.location.href = 'index.html'">
           <span class="nav-icon">🏠</span> Volver a Videos
         </button>
-        <button onclick="window.location.href = 'categorias.html'">
-          <span class="nav-icon">🗂️</span> Categorías
+        <button onclick="window.location.href = 'actrices.html'">
+          <span class="nav-icon">🌟</span> Actrices
         </button>
-        <button onclick="abrirModalNuevaActriz()">
-          <span class="nav-icon">➕</span> Nueva Actriz
+        <button onclick="abrirModalNuevaCategoria()">
+          <span class="nav-icon">➕</span> Nueva Categoría
         </button>
       </div>
     </aside>
 
     <main>
-      <div class="tab active" id="actrizTab">
+      <div class="tab active" id="categoriaTab">
         <div class="main-header">
           <div>
-            <h2>Actrices</h2>
-            <p id="actrizSubtitle">Cargando…</p>
+            <h2>Categorías</h2>
+            <p id="categoriaSubtitle">Cargando…</p>
           </div>
         </div>
         <div style="padding: 0 28px">
@@ -39,13 +39,13 @@
               <span class="search-icon">🔍</span>
               <input
                 type="text"
-                id="buscadorActriz"
-                placeholder="Buscar actriz…"
-                oninput="filtrarActrices()"
+                id="buscadorCategoria"
+                placeholder="Buscar categoría…"
+                oninput="filtrarCategorias()"
               />
             </div>
           </div>
-          <div class="galeria-actrices" id="galeriaActrices"></div>
+          <div class="galeria-categorias" id="galeriaCategorias"></div>
         </div>
       </div>
     </main>
@@ -54,7 +54,7 @@
     <div class="modal-overlay" id="modalOverlay" onclick="cerrarModal(event)">
       <div class="modal">
         <button class="modal-close" onclick="cerrarModalBtn()">✕</button>
-        <h3 id="modalTitle">✏️ Actriz</h3>
+        <h3 id="modalTitle">✏️ Categoría</h3>
         <div id="modalBody"></div>
         <div class="modal-actions">
           <button class="btn-cancel" onclick="cerrarModalBtn()">
@@ -69,28 +69,30 @@
 
     <script src="scripts.js"></script>
     <script>
-      function abrirModalNuevaActriz() {
+      function abrirModalNuevaCategoria() {
         abrirModal(
-          "➕ Nueva Actriz",
+          "➕ Nueva Categoría",
           `
-        <div class="form-group"><label>Nombre</label><input type="text" id="mNombre" placeholder="Nombre de la actriz"></div>
-        <div class="form-group"><label>URL de imagen (opcional)</label><input type="text" id="mImagen" placeholder="https://…"></div>
+        <div class="form-group"><label>Nombre</label><input type="text" id="mNombreCat" placeholder="Nombre de la categoría"></div>
+        <div class="form-group"><label>URL de imagen (opcional)</label><input type="text" id="mImagenCat" placeholder="https://…"></div>
       `,
           () => {
-            const nombre = document.getElementById("mNombre").value.trim();
-            const imagenUrl = document.getElementById("mImagen").value.trim();
+            const nombre = document.getElementById("mNombreCat").value.trim();
+            const imagenUrl = document
+              .getElementById("mImagenCat")
+              .value.trim();
             if (!nombre) return showToast("El nombre es obligatorio", "error");
 
-            let actrices = getData(actoresKey);
-            const existe = actrices.some(
-              (a) => (typeof a === "string" ? a : a.nombre) === nombre,
+            let categorias = getData(categoriasKey);
+            const existe = categorias.some(
+              (c) => (typeof c === "string" ? c : c.nombre) === nombre,
             );
-            if (existe) return showToast("Esta actriz ya existe", "error");
+            if (existe) return showToast("Esta categoría ya existe", "error");
 
-            actrices.push(imagenUrl ? { nombre, imagenUrl } : nombre);
-            setData(actoresKey, actrices);
+            categorias.push(imagenUrl ? { nombre, imagenUrl } : nombre);
+            setData(categoriasKey, categorias);
             cerrarModalBtn();
-            cargarActrices();
+            cargarCategorias();
             showToast(`${nombre} agregada ✓`, "success");
           },
         );
@@ -100,7 +102,7 @@
         if (!sessionStorage.getItem("autenticado")) {
           window.location.href = "index.html";
         } else {
-          cargarActrices();
+          cargarCategorias();
         }
       });
     </script>

@@ -97,6 +97,7 @@ function actualizarStats() {
   const ss = document.getElementById("statShorts");
   const sf = document.getElementById("statFavs");
   const sa = document.getElementById("statActrices");
+  const sc = document.getElementById("statCategorias");
   if (sv) sv.textContent = getData(videosKey).length;
   if (ss) ss.textContent = getData(shortsKey).length;
   if (sf)
@@ -105,6 +106,7 @@ function actualizarStats() {
       getData(favoritosShortsKey).length +
       getData(favoritosImagenesKey).length;
   if (sa) sa.textContent = getData(actoresKey).length;
+  if (sc) sc.textContent = getData(categoriasKey).length;
 }
 
 // ====== SORT ======
@@ -306,12 +308,17 @@ function cargarDatos() {
 
   const urlParams = new URLSearchParams(window.location.search);
   const actrizParam = urlParams.get("actriz");
+  const categoriaParam = urlParams.get("categoria");
   if (actrizParam && buscador) {
     buscador.value = actrizParam;
     setSortMode("az", null);
   }
+  if (categoriaParam && categoriaFiltro) {
+    categoriaFiltro.value = categoriaParam;
+  }
 
-  cargarVideos(!actrizParam);
+  renderCategoryStrip();
+  cargarVideos(!actrizParam && !categoriaParam);
 }
 
 // ====== Galería Shorts ======
@@ -500,8 +507,9 @@ function crearCard(video, favoritos) {
   }
   if (video.categoria) {
     const tag = document.createElement("span");
-    tag.className = "meta-tag";
+    tag.className = "meta-tag categoria";
     tag.textContent = `🗂️ ${video.categoria}`;
+    tag.onclick = () => buscarPorCategoria(video.categoria);
     meta.appendChild(tag);
   }
   if (video.carpeta) {
@@ -542,6 +550,12 @@ function crearCard(video, favoritos) {
 // ====== Búsqueda / Filtros ======
 function buscarPorActriz(actriz) {
   if (buscador) buscador.value = actriz;
+  mostrarTab("galeriaTab", document.getElementById("navGaleria"));
+  cargarVideos(false);
+}
+
+function buscarPorCategoria(categoria) {
+  if (categoriaFiltro) categoriaFiltro.value = categoria;
   mostrarTab("galeriaTab", document.getElementById("navGaleria"));
   cargarVideos(false);
 }
@@ -1021,6 +1035,230 @@ function eliminarActrizModal(actriz) {
   document.getElementById("modalConfirm").textContent = "Eliminar";
 }
 
+// ====== Categorías ======
+let _allCategorias = [];
+
+function contarVideosCategoria(nombre) {
+  return getData(videosKey).filter((v) => v.categoria === nombre).length;
+}
+
+function cargarCategorias() {
+  const gal = document.getElementById("galeriaCategorias");
+  if (!gal) return;
+
+  _allCategorias = getData(categoriasKey);
+  const sub = document.getElementById("categoriaSubtitle");
+  if (sub)
+    sub.textContent = `${_allCategorias.length} categoría${_allCategorias.length !== 1 ? "s" : ""}`;
+
+  renderCategorias(_allCategorias);
+}
+
+function renderCategorias(lista) {
+  const gal = document.getElementById("galeriaCategorias");
+  if (!gal) return;
+  gal.innerHTML = "";
+
+  if (lista.length === 0) {
+    gal.innerHTML = emptyState("🗂️", "No hay categorías guardadas");
+    return;
+  }
+
+  lista.forEach((cat) => {
+    const nombre = typeof cat === "object" ? cat.nombre : cat;
+    const imagenUrl = typeof cat === "object" ? cat.imagenUrl || "" : "";
+
+    const card = document.createElement("div");
+    card.className = "categoria-card" + (imagenUrl ? "" : " no-image");
+
+    if (imagenUrl) {
+      const img = document.createElement("img");
+      img.className = "categoria-imagen";
+      img.src = imagenUrl;
+      img.loading = "lazy";
+      img.alt = nombre;
+      img.onerror = () => {
+        card.classList.add("no-image");
+        img.remove();
+      };
+      card.appendChild(img);
+    }
+
+    const overlay = document.createElement("div");
+    overlay.className = "categoria-overlay";
+
+    const nombreEl = document.createElement("div");
+    nombreEl.className = "categoria-nombre";
+    nombreEl.textContent = nombre;
+    nombreEl.title = nombre;
+
+    const n = contarVideosCategoria(nombre);
+    const count = document.createElement("div");
+    count.className = "categoria-count";
+    count.textContent = `${n} video${n !== 1 ? "s" : ""}`;
+
+    overlay.append(nombreEl, count);
+    card.appendChild(overlay);
+
+    const acciones = document.createElement("div");
+    acciones.className = "acciones-categoria";
+    acciones.appendChild(
+      actionBtn("🖼️", "Cambiar imagen", (e) => {
+        e.stopPropagation();
+        cambiarImagenCategoriaModal(cat);
+      }),
+    );
+    acciones.appendChild(
+      actionBtn("✏️", "Editar nombre", (e) => {
+        e.stopPropagation();
+        editarCategoriaModal(cat);
+      }),
+    );
+    acciones.appendChild(
+      actionBtn(
+        "🗑️",
+        "Eliminar",
+        (e) => {
+          e.stopPropagation();
+          eliminarCategoriaModal(cat);
+        },
+        true,
+      ),
+    );
+    card.appendChild(acciones);
+
+    card.onclick = () => {
+      window.location.href = `index.html?categoria=${encodeURIComponent(nombre)}`;
+    };
+
+    gal.appendChild(card);
+  });
+}
+
+function filtrarCategorias() {
+  const q = (document.getElementById("buscadorCategoria")?.value || "")
+    .toLowerCase()
+    .trim();
+  if (!q) {
+    renderCategorias(_allCategorias);
+    return;
+  }
+  const filtered = _allCategorias.filter((c) =>
+    (typeof c === "string" ? c : c.nombre).toLowerCase().includes(q),
+  );
+  renderCategorias(filtered);
+}
+
+function cambiarImagenCategoriaModal(cat) {
+  const nombreCat = typeof cat === "object" ? cat.nombre : cat;
+  const imgActual = typeof cat === "object" ? cat.imagenUrl || "" : "";
+  abrirModal(
+    "🖼️ Cambiar imagen",
+    `
+    <div class="form-group"><label>Nueva URL de imagen para <strong>${nombreCat}</strong></label>
+    <input type="text" id="mImgUrlCat" placeholder="https://…" value="${imgActual}"></div>
+  `,
+    () => {
+      const nuevaUrl = document.getElementById("mImgUrlCat").value.trim();
+      let categorias = getData(categoriasKey).map((c) => {
+        if (typeof c === "string")
+          return c === nombreCat ? { nombre: c, imagenUrl: nuevaUrl } : c;
+        return c.nombre === nombreCat ? { ...c, imagenUrl: nuevaUrl } : c;
+      });
+      setData(categoriasKey, categorias);
+      cerrarModalBtn();
+      cargarCategorias();
+      showToast("Imagen actualizada ✓", "success");
+    },
+  );
+}
+
+function editarCategoriaModal(cat) {
+  const nombreActual = typeof cat === "object" ? cat.nombre : cat;
+  abrirModal(
+    "✏️ Editar categoría",
+    `
+    <div class="form-group"><label>Nombre</label><input type="text" id="mNombreCatEdit" value="${nombreActual}"></div>
+  `,
+    () => {
+      const nuevoNombre = document
+        .getElementById("mNombreCatEdit")
+        .value.trim();
+      if (!nuevoNombre || nuevoNombre === nombreActual) {
+        cerrarModalBtn();
+        return;
+      }
+
+      let categorias = getData(categoriasKey).map((c) => {
+        if (typeof c === "string")
+          return c === nombreActual ? nuevoNombre : c;
+        return c.nombre === nombreActual ? { ...c, nombre: nuevoNombre } : c;
+      });
+      let videos = getData(videosKey).map((v) =>
+        v.categoria === nombreActual ? { ...v, categoria: nuevoNombre } : v,
+      );
+      setData(categoriasKey, categorias);
+      setData(videosKey, videos);
+      cerrarModalBtn();
+      cargarCategorias();
+      if (window.location.pathname.includes("index.html")) cargarDatos();
+      showToast("Nombre actualizado ✓", "success");
+    },
+  );
+}
+
+function eliminarCategoriaModal(cat) {
+  const nombre = typeof cat === "object" ? cat.nombre : cat;
+  abrirModal(
+    "🗑️ Eliminar categoría",
+    `
+    <p style="color:var(--text-muted);font-size:.9rem">¿Eliminar <strong style="color:var(--text)">${nombre}</strong>? No borra los videos asociados, solo dejan de tener esa categoría asignada.</p>
+  `,
+    () => {
+      let categorias = getData(categoriasKey).filter(
+        (c) => (typeof c === "string" ? c : c.nombre) !== nombre,
+      );
+      setData(categoriasKey, categorias);
+      cerrarModalBtn();
+      cargarCategorias();
+      if (window.location.pathname.includes("index.html")) cargarDatos();
+      showToast(`${nombre} eliminada`, "error");
+    },
+  );
+  document.getElementById("modalConfirm").textContent = "Eliminar";
+}
+
+// Franja de categorías rápidas en la parte superior de la Galería
+function renderCategoryStrip() {
+  const strip = document.getElementById("categoryStrip");
+  if (!strip) return;
+  const categorias = getData(categoriasKey);
+  strip.innerHTML = "";
+
+  if (categorias.length === 0) {
+    strip.style.display = "none";
+    return;
+  }
+  strip.style.display = "flex";
+
+  categorias.forEach((cat) => {
+    const nombre = typeof cat === "object" ? cat.nombre : cat;
+    const imagenUrl = typeof cat === "object" ? cat.imagenUrl || "" : "";
+
+    const item = document.createElement("div");
+    item.className = "strip-item";
+    if (imagenUrl) item.style.backgroundImage = `url('${imagenUrl}')`;
+    item.title = nombre;
+    item.onclick = () => buscarPorCategoria(nombre);
+
+    const label = document.createElement("span");
+    label.textContent = nombre;
+    item.appendChild(label);
+
+    strip.appendChild(item);
+  });
+}
+
 // ====== Editar Video MODAL ======
 function editVideoModal(oldUrl) {
   const videos = getData(videosKey);
@@ -1215,7 +1453,7 @@ function importData(event) {
       setData(actoresKey, mergedActrices);
       setData(
         categoriasKey,
-        mergeStrings(
+        mergeCategorias(
           getData(categoriasKey),
           Array.isArray(imported.categorias) ? imported.categorias : [],
         ),
@@ -1296,6 +1534,21 @@ function mergeActrices(actuales, nuevas) {
     else if (!prev.imagenUrl && a.imagenUrl) map.set(a.nombre, a);
   }
   return Array.from(map.values()).map((a) => (a.imagenUrl ? a : a.nombre));
+}
+function mergeCategorias(actuales, nuevas) {
+  const toObj = (c) =>
+    typeof c === "string"
+      ? { nombre: c }
+      : { nombre: c?.nombre || "", imagenUrl: c?.imagenUrl || "" };
+  const all = [...actuales.map(toObj), ...nuevas.map(toObj)];
+  const map = new Map();
+  for (const c of all) {
+    if (!c.nombre) continue;
+    const prev = map.get(c.nombre);
+    if (!prev) map.set(c.nombre, c);
+    else if (!prev.imagenUrl && c.imagenUrl) map.set(c.nombre, c);
+  }
+  return Array.from(map.values()).map((c) => (c.imagenUrl ? c : c.nombre));
 }
 function mergeStrings(actuales, nuevas) {
   return Array.from(

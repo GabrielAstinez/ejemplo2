@@ -30,6 +30,10 @@
           <span class="stat-n" id="statActrices">0</span
           ><span class="stat-label">Actrices</span>
         </div>
+        <div class="stat-chip">
+          <span class="stat-n" id="statCategorias">0</span
+          ><span class="stat-label">Categorías</span>
+        </div>
       </div>
 
       <div class="nav-section">
@@ -46,6 +50,9 @@
         </button>
         <button onclick="window.location.href = 'actrices.html'">
           <span class="nav-icon">🌟</span> Actrices
+        </button>
+        <button onclick="window.location.href = 'categorias.html'">
+          <span class="nav-icon">🗂️</span> Categorías
         </button>
 
         <label style="margin-top: 12px">Agregar</label>
@@ -92,6 +99,8 @@
         </div>
 
         <div style="padding: 0 28px">
+          <div class="category-strip" id="categoryStrip"></div>
+
           <div class="search-bar">
             <div class="search-wrap">
               <span class="search-icon">🔍</span>
